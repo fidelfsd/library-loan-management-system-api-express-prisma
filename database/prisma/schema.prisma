@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String
+  email         String         @unique
+  password      String
+  isActive      Boolean        @default(true) @map("is_active")
+  roleId        Int            @map("role_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  role          Role           @relation(fields: [roleId], references: [id])
+  loans         Loan[]
+  favoriteBooks FavoriteBook[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model Author {
+  id          Int     @id @default(autoincrement())
+  name        String
+  nationality String?
+
+  books Book[]
+
+  @@map("authors")
+}
+
+model Book {
+  id            Int            @id @default(autoincrement())
+  title         String
+  gender        String?
+  authorId      Int            @map("author_id")
+  author        Author         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  loans         Loan[]
+  favoriteBooks FavoriteBook[]
+
+  @@index([authorId])
+  @@map("books")
+}
+
+model Loan {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  bookId     Int       @map("book_id")
+  loanDate   DateTime  @map("loan_date")
+  dueDate    DateTime  @map("due_date")
+  returnDate DateTime?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId, loanDate], name: "user_book_date_unique")
+  @@index([userId])
+  @@index([bookId])
+  @@map("loans")
+}
+
+model FavoriteBook {
+  id     Int @id @default(autoincrement())
+  userId Int @map("user_id")
+  bookId Int @map("book_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId], name: "user_book_unique")
+  @@index([userId])
+  @@index([bookId])
+  @@map("favorite_books")
+}
